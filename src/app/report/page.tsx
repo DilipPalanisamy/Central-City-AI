@@ -38,6 +38,8 @@ export interface ReportState {
   priority: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
   explanation: string;
   location: string;
+  city?: string;
+  area?: string;
   latitude: number;
   longitude: number;
   landmark?: string;
@@ -67,6 +69,8 @@ export default function ReportPage() {
     priority: "CRITICAL",
     explanation: "Visible road surface deterioration and pothole damage detected.",
     location: "Avinashipalayam, Tamil Nadu",
+    city: "Tiruppur",
+    area: "Avinashipalayam",
     latitude: 11.0234,
     longitude: 77.4512,
     landmark: "Near Avinashipalayam Main Bus Stop",
@@ -112,6 +116,8 @@ export default function ReportPage() {
     setReportData((prev) => ({
       ...prev,
       location: locData.address,
+      city: locData.city || prev.city,
+      area: locData.area || prev.area,
       latitude: locData.lat,
       longitude: locData.lng,
       landmark: locData.landmark || prev.landmark,
@@ -253,6 +259,8 @@ export default function ReportPage() {
             <Step3LocationMap
               locationData={{
                 address: reportData.location,
+                city: reportData.city || "Tiruppur",
+                area: reportData.area || "Avinashipalayam",
                 ward: "Ward 14",
                 zone: "Tiruppur District",
                 lat: reportData.latitude,
