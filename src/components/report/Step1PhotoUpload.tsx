@@ -13,6 +13,8 @@ import {
   Check,
   AlertCircle,
   ImageIcon,
+  Smartphone,
+  CheckCircle2,
 } from "lucide-react";
 
 export interface SamplePhotoOption {
@@ -27,31 +29,23 @@ export interface SamplePhotoOption {
 export const SAMPLE_PHOTOS_DATA: SamplePhotoOption[] = [
   {
     id: "sample_normal_road",
-    name: "Normal Paved Road (No Damage)",
-    category: "normal_road",
+    name: "Good Paved Road (No Damage)",
+    category: "Road & Pavement",
     url: "https://images.unsplash.com/photo-1545459720-aac8509eb02c?w=800&auto=format&fit=crop&q=80",
-    description: "Maintained clean asphalt road with no visible cracks or potholes.",
+    description: "Well-maintained asphalt road in good structural condition with no potholes.",
     isNormal: true,
   },
   {
     id: "sample_pothole",
-    name: "Deep Road Damage",
+    name: "Severe Road Pothole",
     category: "Road Damage",
     url: "https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?w=800&auto=format&fit=crop&q=80",
-    description: "Severe crater-like road depression on transit lane.",
+    description: "Deep crater-like road depression on active transit lane.",
     isNormal: false,
   },
   {
-    id: "sample_normal_water",
-    name: "Normal Water Tank (No Leak)",
-    category: "normal_water",
-    url: "https://images.unsplash.com/photo-1517646287270-a5a9ca602eec?w=800&auto=format&fit=crop&q=80",
-    description: "Standard municipal water storage in normal operational condition.",
-    isNormal: true,
-  },
-  {
     id: "sample_water",
-    name: "Water Main Seepage",
+    name: "Water Pipeline Leak",
     category: "Water Infrastructure",
     url: "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=800&auto=format&fit=crop&q=80",
     description: "Pressurized underground pipeline rupture flooding sidewalk.",
@@ -62,7 +56,7 @@ export const SAMPLE_PHOTOS_DATA: SamplePhotoOption[] = [
     name: "Broken Streetlight",
     category: "Broken Streetlight",
     url: "https://images.unsplash.com/photo-1508873696983-2df57046475a?w=800&auto=format&fit=crop&q=80",
-    description: "Multiple dark luminaires creating night pedestrian safety hazard.",
+    description: "Faulty dark luminaire creating night pedestrian safety hazard.",
     isNormal: false,
   },
   {
@@ -70,13 +64,13 @@ export const SAMPLE_PHOTOS_DATA: SamplePhotoOption[] = [
     name: "Illegal Waste Dump",
     category: "Garbage",
     url: "https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?w=800&auto=format&fit=crop&q=80",
-    description: "Industrial debris blocking public access and stormwater runoff.",
+    description: "Uncontained industrial debris blocking public corridor.",
     isNormal: false,
   },
 ];
 
-const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
-const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/jpg"];
+const MAX_FILE_SIZE_BYTES = 12 * 1024 * 1024; // 12 MB
+const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/jpg", "image/heic", "image/heif"];
 
 export interface Step1PhotoUploadProps {
   selectedImageUrl: string | null;
@@ -89,59 +83,84 @@ export function Step1PhotoUpload({
   onImageSelected,
   onContinue,
 }: Step1PhotoUploadProps) {
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
   const [selectedFileSize, setSelectedFileSize] = useState<string | null>(null);
   const [activeSampleId, setActiveSampleId] = useState<string | null>(null);
 
-  // Trigger Native File Input (Gallery on mobile / Windows Explorer on desktop)
-  const handleTriggerUpload = () => {
+  // Trigger Native Gallery File Input
+  const handleTriggerGallery = () => {
     setErrorMessage(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-      fileInputRef.current.click();
+    if (galleryInputRef.current) {
+      galleryInputRef.current.value = "";
+      galleryInputRef.current.click();
     }
   };
 
-  // Process Real File Selection
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  // Trigger Native Camera Input (Mobile capture)
+  const handleTriggerCamera = () => {
+    setErrorMessage(null);
+    if (cameraInputRef.current) {
+      cameraInputRef.current.value = "";
+      cameraInputRef.current.click();
+    }
+  };
 
-    // 1. Validate File Size (< 10 MB)
+  // Convert File to Base64 / Data URL to ensure universal compatibility
+  const processSelectedFile = (file: File) => {
+    // 1. Validate File Size
     if (file.size > MAX_FILE_SIZE_BYTES) {
       setErrorMessage(
         `File size (${(file.size / (1024 * 1024)).toFixed(
           1
-        )} MB) exceeds the 10 MB limit. Please select a smaller photo.`
+        )} MB) exceeds the 12 MB limit. Please select a smaller photo.`
       );
       return;
     }
 
     // 2. Validate MIME Type
-    if (!ALLOWED_IMAGE_TYPES.includes(file.type.toLowerCase())) {
-      setErrorMessage(
-        "Invalid file format. Please upload a valid image file (JPEG, PNG, or WEBP)."
-      );
+    const fileType = file.type.toLowerCase();
+    const isValidType = ALLOWED_IMAGE_TYPES.some((t) => fileType.includes(t.replace("image/", "")) || fileType === t);
+    if (!isValidType && fileType.length > 0 && !fileType.startsWith("image/")) {
+      setErrorMessage("Invalid file format. Please upload a valid image (JPEG, PNG, WEBP).");
       return;
     }
 
-    // 3. Clear errors and create persistent local Object URL preview
     setErrorMessage(null);
-    const objectUrl = URL.createObjectURL(file);
     setSelectedFileName(file.name);
     setSelectedFileSize(`${(file.size / 1024).toFixed(0)} KB`);
     setActiveSampleId(null);
 
-    onImageSelected(objectUrl, undefined, file);
+    // Read as Base64 Data URL so it is fully self-contained across components & APIs
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64Url = reader.result as string;
+      onImageSelected(base64Url, undefined, file);
+    };
+    reader.onerror = () => {
+      // Fallback to object URL if FileReader fails
+      const objectUrl = URL.createObjectURL(file);
+      onImageSelected(objectUrl, undefined, file);
+    };
+    reader.readAsDataURL(file);
   };
 
-  // Handle Preset Sample Selection
+  // Handle Input Changes
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      processSelectedFile(file);
+    }
+  };
+
+  // Handle Sample Selection
   const handleSelectSample = (sample: SamplePhotoOption) => {
     setErrorMessage(null);
     setSelectedFileName(sample.name);
-    setSelectedFileSize("Verified Preset");
+    setSelectedFileSize("Verified Preset Sample");
     setActiveSampleId(sample.id);
     onImageSelected(sample.url, sample);
   };
@@ -152,9 +171,8 @@ export function Step1PhotoUpload({
     setSelectedFileSize(null);
     setActiveSampleId(null);
     setErrorMessage(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
+    if (galleryInputRef.current) galleryInputRef.current.value = "";
+    if (cameraInputRef.current) cameraInputRef.current.value = "";
     onImageSelected("", undefined);
   };
 
@@ -162,28 +180,40 @@ export function Step1PhotoUpload({
 
   return (
     <div className="space-y-6 max-w-3xl mx-auto">
-      {/* Hidden Native File Input */}
+      {/* Hidden Native File Inputs */}
+      {/* 1. Standard Gallery / File Picker */}
       <input
-        ref={fileInputRef}
+        ref={galleryInputRef}
         type="file"
-        accept="image/jpeg,image/png,image/webp,image/*"
-        onChange={handleFileChange}
+        accept="image/*"
+        onChange={handleFileInputChange}
         className="hidden"
         id="citizen-gallery-input"
+      />
+
+      {/* 2. Direct Mobile Camera Capture */}
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        onChange={handleFileInputChange}
+        className="hidden"
+        id="citizen-camera-input"
       />
 
       {/* Step Header */}
       <div className="text-center space-y-2">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-950/80 border border-cyan-500/30 text-cyan-300 text-xs font-semibold shadow-cyan-glow">
           <Camera className="w-3.5 h-3.5 text-cyan-400" />
-          <span>Step 01: Evidence Capture</span>
+          <span>Step 01: Photo Evidence Capture</span>
         </div>
 
         <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
           Upload Photo Evidence
         </h2>
-        <p className="text-xs sm:text-sm text-slate-300">
-          Upload an image from your device gallery or choose a test case.
+        <p className="text-xs sm:text-sm text-slate-300 max-w-md mx-auto">
+          Capture or upload clear photo evidence of the municipal issue. Location coordinates will be selected in Step 3.
         </p>
       </div>
 
@@ -195,35 +225,48 @@ export function Step1PhotoUpload({
         </div>
       )}
 
-      {/* Upload Box / Image Preview Canvas */}
+      {/* Main Upload Box / Image Preview Canvas */}
       <div className="p-6 sm:p-8 rounded-3xl bg-slate-950 border-2 border-dashed border-slate-800 hover:border-cyan-500/50 transition-all shadow-glass space-y-6">
         {!hasPhoto ? (
           /* Empty Upload State */
-          <div className="text-center py-8 space-y-4">
+          <div className="text-center py-8 space-y-6">
             <div className="w-20 h-20 mx-auto rounded-3xl bg-slate-900 border border-slate-800 flex items-center justify-center text-cyan-400 shadow-inner group">
               <UploadCloud className="w-10 h-10 transition-transform group-hover:scale-110 duration-200" />
             </div>
 
-            <div className="space-y-1">
-              <h3 className="text-base font-bold text-white">
-                Select Photo from Device Gallery
+            <div className="space-y-1.5">
+              <h3 className="text-base sm:text-lg font-bold text-white">
+                Upload Civic Evidence Photo
               </h3>
               <p className="text-xs text-slate-400">
-                Supports JPG, JPEG, PNG, WEBP files up to 10 MB
+                Supports JPG, JPEG, PNG, WEBP images up to 12 MB
               </p>
             </div>
 
-            {/* Upload Button */}
-            <Button
-              type="button"
-              variant="glow"
-              size="lg"
-              onClick={handleTriggerUpload}
-              leftIcon={<ImageIcon className="w-4 h-4" />}
-              className="text-xs font-black uppercase tracking-wider px-8 py-3.5 bg-gradient-to-r from-cyan-500 to-blue-600 shadow-cyan-glow"
-            >
-              Upload Photo
-            </Button>
+            {/* Upload Buttons */}
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 max-w-md mx-auto">
+              <Button
+                type="button"
+                variant="glow"
+                size="lg"
+                onClick={handleTriggerGallery}
+                leftIcon={<ImageIcon className="w-4 h-4" />}
+                className="w-full sm:w-auto text-xs font-black uppercase tracking-wider px-6 py-3.5 bg-gradient-to-r from-cyan-500 to-blue-600 shadow-cyan-glow"
+              >
+                Choose from Gallery
+              </Button>
+
+              <Button
+                type="button"
+                variant="outline"
+                size="lg"
+                onClick={handleTriggerCamera}
+                leftIcon={<Smartphone className="w-4 h-4 text-cyan-400" />}
+                className="w-full sm:w-auto text-xs font-bold border-slate-700 hover:border-cyan-500/50 text-slate-200 hover:text-white px-6 py-3.5"
+              >
+                Take Camera Photo
+              </Button>
+            </div>
           </div>
         ) : (
           /* Selected Image Preview State */
@@ -240,7 +283,7 @@ export function Step1PhotoUpload({
               <div className="absolute top-3 right-3 flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={handleTriggerUpload}
+                  onClick={handleTriggerGallery}
                   className="px-3 py-1.5 rounded-xl bg-slate-950/90 border border-slate-700 text-xs font-bold text-white hover:text-cyan-300 hover:border-cyan-500 backdrop-blur-md flex items-center gap-1.5 transition-all shadow-lg"
                 >
                   <RefreshCw className="w-3.5 h-3.5" />
@@ -250,44 +293,59 @@ export function Step1PhotoUpload({
                 <button
                   type="button"
                   onClick={handleRemovePhoto}
-                  className="p-1.5 rounded-xl bg-slate-950/90 border border-rose-500/40 text-rose-400 hover:bg-rose-950 hover:text-rose-200 backdrop-blur-md transition-all shadow-lg"
+                  className="px-3 py-1.5 rounded-xl bg-rose-950/90 border border-rose-700 text-xs font-bold text-rose-300 hover:text-rose-100 hover:border-rose-500 backdrop-blur-md flex items-center gap-1.5 transition-all shadow-lg"
                 >
-                  <Trash2 className="w-4 h-4" />
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Remove</span>
                 </button>
               </div>
 
-              {/* Bottom Metadata Pill */}
-              <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between bg-slate-950/90 backdrop-blur-md px-3.5 py-2 rounded-xl border border-slate-800 text-xs">
-                <div className="flex items-center space-x-2 truncate">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
-                  <span className="text-white font-medium truncate">
+              {/* Bottom Image Info Badge */}
+              <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between pointer-events-none">
+                <div className="px-3 py-1 rounded-xl bg-slate-950/80 border border-slate-800 backdrop-blur-md text-[11px] font-mono text-cyan-300 flex items-center gap-2">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                  <span className="truncate max-w-[200px] sm:max-w-xs">
                     {selectedFileName || "evidence_photo.jpg"}
                   </span>
+                  {selectedFileSize && (
+                    <span className="text-slate-500">({selectedFileSize})</span>
+                  )}
                 </div>
-                {selectedFileSize && (
-                  <span className="text-slate-400 font-mono text-[11px] shrink-0 ml-2">
-                    {selectedFileSize}
-                  </span>
-                )}
               </div>
+            </div>
+
+            {/* Quick action bar */}
+            <div className="flex items-center justify-between pt-1">
+              <span className="text-xs text-emerald-400 font-semibold flex items-center gap-1.5">
+                <Check className="w-4 h-4" />
+                Photo ready for Gemini Vision AI analysis
+              </span>
+
+              <button
+                type="button"
+                onClick={handleRemovePhoto}
+                className="text-xs text-rose-400 hover:text-rose-300 font-semibold transition-colors"
+              >
+                Clear Photo
+              </button>
             </div>
           </div>
         )}
       </div>
 
-      {/* Test Scenarios Grid (Normal vs Damaged) */}
-      <div className="space-y-3">
+      {/* Preset Verification Samples */}
+      <div className="space-y-3 pt-2">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
             <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-            <span>Or choose a test scenario:</span>
+            <span>Or Choose a Verified Test Scenario</span>
           </span>
-          <span className="text-[11px] text-slate-500">
-            Tests Damage vs Normal detection
+          <span className="text-[11px] text-slate-500 font-mono">
+            Includes Clean &amp; Damaged cases
           </span>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
           {SAMPLE_PHOTOS_DATA.map((sample) => {
             const isSelected = activeSampleId === sample.id;
 
@@ -298,44 +356,42 @@ export function Step1PhotoUpload({
                 onClick={() => handleSelectSample(sample)}
                 className={`p-2.5 rounded-2xl border text-left transition-all relative overflow-hidden group ${
                   isSelected
-                    ? "bg-cyan-950/90 border-cyan-400 shadow-cyan-glow"
-                    : "bg-slate-950/80 border-slate-850 hover:border-slate-700"
+                    ? "bg-cyan-950/80 border-cyan-400 shadow-cyan-glow"
+                    : "bg-slate-900/60 border-slate-800 hover:border-slate-700 hover:bg-slate-900"
                 }`}
               >
-                <div className="flex items-center justify-between mb-1">
-                  <span
-                    className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${
-                      sample.isNormal
-                        ? "bg-slate-800 text-emerald-400 border border-emerald-500/30"
-                        : "bg-rose-950 text-rose-400 border border-rose-500/30"
-                    }`}
-                  >
-                    {sample.isNormal ? "NORMAL / NO DAMAGE" : "CIVIC HAZARD"}
-                  </span>
-                  {isSelected && <Check className="w-3.5 h-3.5 text-cyan-400 shrink-0" />}
+                <div className="h-16 rounded-xl overflow-hidden mb-2 bg-slate-950">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={sample.url}
+                    alt={sample.name}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                </div>
+                <div className="text-[11px] font-bold text-white truncate">
+                  {sample.name}
+                </div>
+                <div className="text-[10px] text-slate-400 font-mono truncate">
+                  {sample.isNormal ? "Clean State" : sample.category}
                 </div>
 
-                <span className="text-xs font-bold text-white block truncate">
-                  {sample.name}
-                </span>
-                <span className="text-[10px] text-slate-400 block line-clamp-1">
-                  {sample.description}
-                </span>
+                {sample.isNormal && (
+                  <span className="absolute top-2 right-2 text-[9px] font-mono font-black px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/40">
+                    GOOD
+                  </span>
+                )}
               </button>
             );
           })}
         </div>
       </div>
 
-      {/* Action Footer */}
+      {/* Navigation Footer */}
       <div className="p-4 rounded-3xl bg-slate-950 border border-slate-800 flex items-center justify-between gap-4">
-        <span className="text-xs text-slate-400">
-          {!hasPhoto
-            ? "Select or upload a photo to proceed"
-            : "Photo evidence verified and ready for AI analysis"}
+        <span className="text-xs text-slate-400 hidden sm:inline">
+          {hasPhoto ? "Photo selected. Ready for AI inspection." : "Select a photo to proceed."}
         </span>
 
-        {/* Continue Button: Disabled until a photo is selected */}
         <Button
           type="button"
           variant="glow"
@@ -343,7 +399,11 @@ export function Step1PhotoUpload({
           disabled={!hasPhoto}
           onClick={onContinue}
           rightIcon={<ArrowRight className="w-4 h-4" />}
-          className="text-xs font-black uppercase tracking-wider px-8 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 shadow-cyan-glow disabled:opacity-40 disabled:cursor-not-allowed"
+          className={`w-full sm:w-auto text-xs font-black uppercase tracking-wider px-8 py-3 transition-all ${
+            hasPhoto
+              ? "bg-gradient-to-r from-cyan-500 to-blue-600 shadow-cyan-glow"
+              : "opacity-40 cursor-not-allowed bg-slate-800"
+          }`}
         >
           CONTINUE TO AI ANALYSIS →
         </Button>
