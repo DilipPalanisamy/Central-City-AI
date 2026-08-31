@@ -1,0 +1,40 @@
+import { CivicUser } from "@/types";
+
+export const MOCK_USERS: Record<string, CivicUser> = {
+  citizen: {
+    id: "usr_citizen_01",
+    name: "Alex Rivera",
+    email: "alex.rivera@civicnet.org",
+    role: "citizen",
+    avatarUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
+    ward: "Ward 14 - Metro Central",
+    civicKarma: 840,
+    totalReportsSubmitted: 24,
+    totalVerifications: 12,
+    badgeTitle: "Pioneer Citizen",
+  },
+  verifier: {
+    id: "usr_verifier_01",
+    name: "Dr. Maya Patel",
+    email: "maya.patel@cityguardian.org",
+    role: "verifier",
+    avatarUrl: "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&auto=format&fit=crop&q=80",
+    ward: "Ward 07 - Tech District",
+    civicKarma: 3420,
+    totalReportsSubmitted: 48,
+    totalVerifications: 312,
+    badgeTitle: "Verified Civic Guardian",
+  },
+  authority: {
+    id: "usr_authority_01",
+    name: "Eng. Marcus Vance",
+    email: "m.vance@centralcity.gov",
+    role: "authority",
+    avatarUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80",
+    ward: "City Operations Command Center",
+    civicKarma: 9850,
+    totalReportsSubmitted: 0,
+    totalVerifications: 890,
+    badgeTitle: "Chief Municipal Dispatcher",
+  },
+};
