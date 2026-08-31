@@ -232,3 +232,105 @@ export function getRoleMeta(role: UserRole): {
       };
   }
 }
+
+/**
+ * Calculates the great-circle distance between two GPS coordinates in meters using the Haversine formula.
+ */
+export function calculateDistanceMeters(
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number
+): number {
+  const R = 6371e3; // Earth's mean radius in meters
+  const φ1 = (lat1 * Math.PI) / 180;
+  const φ2 = (lat2 * Math.PI) / 180;
+  const Δφ = ((lat2 - lat1) * Math.PI) / 180;
+  const Δλ = ((lon2 - lon1) * Math.PI) / 180;
+
+  const a =
+    Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+    Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  return Math.round(R * c);
+}
+
+/**
+ * Compares two category strings to determine if they match the same civic domain.
+ */
+export function isSameCivicCategory(cat1: string, cat2: string): boolean {
+  if (!cat1 || !cat2) return false;
+  const normalize = (c: string) =>
+    c.toLowerCase().replace(/[^a-z0-9]/g, "");
+
+  const c1 = normalize(cat1);
+  const c2 = normalize(cat2);
+
+  if (c1 === c2) return true;
+  if ((c1.includes("road") || c1.includes("pothole") || c1.includes("damage") || c1.includes("street")) &&
+      (c2.includes("road") || c2.includes("pothole") || c2.includes("damage") || c2.includes("street"))) return true;
+  if (c1.includes("water") && c2.includes("water")) return true;
+  if ((c1.includes("garbage") || c1.includes("waste") || c1.includes("dump")) &&
+      (c2.includes("garbage") || c2.includes("waste") || c2.includes("dump"))) return true;
+  if ((c1.includes("light") || c1.includes("lamp")) &&
+      (c2.includes("light") || c2.includes("lamp"))) return true;
+  if (c1.includes("traffic") && c2.includes("traffic")) return true;
+  if (c1.includes("manhole") && c2.includes("manhole")) return true;
+  if (c1.includes("tree") && c2.includes("tree")) return true;
+
+  return false;
+}
+
+export interface DuplicateMatchResult {
+  issue: any;
+  distanceMeters: number;
+  similarityScore: number;
+}
+
+/**
+ * Checks for existing active civic reports within radius (default 500 meters) matching category.
+ */
+export function findNearbyDuplicateIssue(
+  currentLocation: { lat: number; lng: number },
+  category: string,
+  issues: any[],
+  maxRadiusMeters = 500
+): DuplicateMatchResult | null {
+  if (!currentLocation || typeof currentLocation.lat !== "number" || typeof currentLocation.lng !== "number" || !issues || issues.length === 0) {
+    return null;
+  }
+
+  let closestMatch: DuplicateMatchResult | null = null;
+
+  for (const issue of issues) {
+    // Only check active (unresolved) reports
+    if (issue.status === "resolved") continue;
+    if (!issue.location || typeof issue.location.lat !== "number" || typeof issue.location.lng !== "number") continue;
+
+    const distance = calculateDistanceMeters(
+      currentLocation.lat,
+      currentLocation.lng,
+      issue.location.lat,
+      issue.location.lng
+    );
+
+    const isCategoryMatch = isSameCivicCategory(category, issue.category || issue.title || "");
+
+    if (distance <= maxRadiusMeters && isCategoryMatch) {
+      // Proximity & category weighted similarity calculation (up to 96%)
+      const proximityScore = Math.max(65, Math.round(98 - (distance / maxRadiusMeters) * 33));
+
+      if (!closestMatch || distance < closestMatch.distanceMeters) {
+        closestMatch = {
+          issue,
+          distanceMeters: distance,
+          similarityScore: proximityScore,
+        };
+      }
+    }
+  }
+
+  return closestMatch;
+}
+

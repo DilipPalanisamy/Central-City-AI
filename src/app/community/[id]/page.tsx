@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Textarea } from "@/components/ui/Input";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { useAuth } from "@/context/AuthContext";
 import { formatRelativeTime, getCategoryMeta, getStatusMeta } from "@/lib/utils";
 import {
   ArrowLeft,
@@ -45,6 +46,7 @@ export default function IssueDetailsPage() {
   const issueId = params.id as string;
 
   const { issues, toggleAffected, addComment, currentUser } = useCivicStore();
+  const { user } = useAuth();
   const [commentInput, setCommentInput] = useState("");
   const [showBoundingBoxes, setShowBoundingBoxes] = useState(true);
 
@@ -55,6 +57,11 @@ export default function IssueDetailsPage() {
       issues[0]
     );
   }, [issues, issueId]);
+
+  const isUserVoted = Boolean(
+    (user?.uid && issue.voterUids?.includes(user.uid)) ||
+    (issue.hasUserMarkedAffected && (!issue.voterUids || issue.voterUids.length === 0))
+  );
 
   const categoryMeta = getCategoryMeta(issue.category);
   const statusMeta = getStatusMeta(issue.status);
@@ -411,21 +418,28 @@ export default function IssueDetailsPage() {
                 </p>
               </div>
 
-              {/* Big "I'M AFFECTED" Button */}
+              {/* Big "👍 I'M AFFECTED" Button */}
               <button
                 type="button"
-                onClick={() => toggleAffected(issue.id)}
+                onClick={() =>
+                  toggleAffected(
+                    issue.id,
+                    user?.uid,
+                    user?.displayName || undefined,
+                    user?.photoURL || undefined
+                  )
+                }
                 className={`w-full py-4 px-6 rounded-2xl text-sm sm:text-base font-black uppercase tracking-wider transition-all flex items-center justify-center gap-3 shadow-xl active:scale-98 ${
-                  issue.hasUserMarkedAffected
+                  isUserVoted
                     ? "bg-gradient-to-r from-purple-600 via-pink-600 to-rose-600 text-white ring-4 ring-purple-500/30 shadow-purple-glow"
                     : "bg-slate-900 hover:bg-slate-800 text-white border-2 border-purple-500/50 hover:border-purple-400 shadow-glass"
                 }`}
               >
-                <Users className={`w-5 h-5 ${issue.hasUserMarkedAffected ? "animate-pulse" : "text-purple-400"}`} />
+                <span className="text-xl">👍</span>
                 <span>
-                  {issue.hasUserMarkedAffected
-                    ? "✓ I AM AFFECTED (Impact Registered)"
-                    : "I'M AFFECTED (+1 Escalate)"}
+                  {isUserVoted
+                    ? "✓ You Endorsed (Impact Registered)"
+                    : "👍 I'M AFFECTED (+1 Escalate)"}
                 </span>
               </button>
 

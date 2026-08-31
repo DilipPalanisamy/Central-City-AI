@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import {
@@ -17,7 +17,13 @@ import {
   AlertCircle,
   Navigation,
   Compass,
+  Sparkles,
 } from "lucide-react";
+import { DuplicateDetectionCard } from "./DuplicateDetectionCard";
+import { findNearbyDuplicateIssue } from "@/lib/utils";
+import { useCivicStore } from "@/lib/mockStore";
+import { useAuth } from "@/context/AuthContext";
+import { useRouter } from "next/navigation";
 
 export interface SelectedLocationData {
   address: string;
@@ -32,6 +38,8 @@ export interface SelectedLocationData {
 
 export interface Step3LocationMapProps {
   locationData: SelectedLocationData;
+  category?: string;
+  imageUrl?: string;
   onLocationChange: (data: SelectedLocationData) => void;
   onContinue: () => void;
   onBack: () => void;
@@ -51,10 +59,17 @@ interface GeocodingResultItem {
 
 export function Step3LocationMap({
   locationData,
+  category = "Road Damage",
+  imageUrl,
   onLocationChange,
   onContinue,
   onBack,
 }: Step3LocationMapProps) {
+  const router = useRouter();
+  const { issues, toggleAffected, addToast } = useCivicStore();
+  const { user } = useAuth();
+  const [dismissedDuplicateIds, setDismissedDuplicateIds] = useState<string[]>([]);
+
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const markerInstanceRef = useRef<any>(null);
@@ -81,6 +96,20 @@ export function Step3LocationMap({
   );
   const [selectedCity, setSelectedCity] = useState(locationData.city || "Tiruppur");
   const [selectedArea, setSelectedArea] = useState(locationData.area || "Avinashipalayam");
+
+  // Spatial duplicate detection within 500 meters of marker coordinates
+  const duplicateMatch = useMemo(() => {
+    const match = findNearbyDuplicateIssue(
+      { lat: currentCoords.lat, lng: currentCoords.lng },
+      category || "Road Damage",
+      issues,
+      500
+    );
+    if (match && dismissedDuplicateIds.includes(match.issue.id)) {
+      return null;
+    }
+    return match;
+  }, [currentCoords, category, issues, dismissedDuplicateIds]);
 
   const searchDebounceRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -543,6 +572,59 @@ export function Step3LocationMap({
             ))}
           </div>
         </div>
+
+        {/* DUPLICATE DETECTION CARD (Active when report within 500m matches category) */}
+        {duplicateMatch && (
+          <div className="pt-2 animate-in fade-in-50 duration-300">
+            <DuplicateDetectionCard
+              userReport={{
+                title: `${category || "Civic Hazard"} at ${selectedLocationName}`,
+                imageUrl:
+                  imageUrl ||
+                  "https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?w=800&auto=format&fit=crop&q=80",
+                address: selectedLocationName,
+                ward: locationData.ward,
+                category: category || "Road Damage",
+              }}
+              existingIssue={{
+                id: duplicateMatch.issue.id,
+                trackingNumber: duplicateMatch.issue.trackingNumber,
+                title: duplicateMatch.issue.title,
+                imageUrl: duplicateMatch.issue.media?.primaryImageUrl || "https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?w=800&auto=format&fit=crop&q=80",
+                address: duplicateMatch.issue.location?.address || selectedLocationName,
+                ward: duplicateMatch.issue.location?.ward || locationData.ward,
+                status: (duplicateMatch.issue.status || "reported").replace("_", " ").toUpperCase(),
+                reportedBy: duplicateMatch.issue.reportedBy?.name || "Verified Citizen",
+                timeAgo: "Active on ledger",
+                affectedCount: duplicateMatch.issue.affectedCount || 1,
+                similarityScore: duplicateMatch.similarityScore,
+              }}
+              onViewExisting={(issueId) => router.push(`/community/${issueId}`)}
+              onJoinExisting={(issueId) => {
+                toggleAffected(
+                  issueId,
+                  user?.uid,
+                  user?.displayName || undefined,
+                  user?.photoURL || undefined
+                );
+                addToast(
+                  "Joined Existing Case (+40 Karma)",
+                  "Your evidence has been attached to the existing report and escalation count updated.",
+                  "success"
+                );
+                router.push(`/community/${issueId}`);
+              }}
+              onReportSeparately={() => {
+                setDismissedDuplicateIds((prev) => [...prev, duplicateMatch.issue.id]);
+                addToast(
+                  "Continuing with Separate Report",
+                  "You may proceed to add unique details and evidence for your report.",
+                  "info"
+                );
+              }}
+            />
+          </div>
+        )}
 
         {/* Navigation Buttons: [ ← Back ] and [ CONFIRM LOCATION ] */}
         <div className="flex items-center justify-between pt-4 border-t border-slate-800">

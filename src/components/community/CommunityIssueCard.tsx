@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { SeverityPill } from "@/components/civic/SeverityPill";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { useCivicStore } from "@/lib/mockStore";
+import { useAuth } from "@/context/AuthContext";
 import { formatRelativeTime, getCategoryMeta, getStatusMeta } from "@/lib/utils";
 import {
   Users,
@@ -33,9 +34,15 @@ export interface CommunityIssueCardProps {
 
 export function CommunityIssueCard({ issue }: CommunityIssueCardProps) {
   const { toggleAffected, addToast } = useCivicStore();
+  const { user } = useAuth();
   const [copied, setCopied] = useState(false);
   const categoryMeta = getCategoryMeta(issue.category);
   const statusMeta = getStatusMeta(issue.status);
+
+  const isUserVoted = Boolean(
+    (user?.uid && issue.voterUids?.includes(user.uid)) ||
+    (issue.hasUserMarkedAffected && (!issue.voterUids || issue.voterUids.length === 0))
+  );
 
   const thresholdPercent = Math.min(
     100,
@@ -220,21 +227,28 @@ export function CommunityIssueCard({ issue }: CommunityIssueCardProps) {
       {/* 4. CARD FOOTER: "I'M AFFECTED" & SHARE ACTIONS     */}
       {/* ================================================== */}
       <div className="p-5 pt-0 border-t border-slate-800/80 mt-2 space-y-3">
-        {/* Primary "I'M AFFECTED" Button */}
+        {/* Primary "👍 I'M AFFECTED" Button */}
         <button
           type="button"
-          onClick={() => toggleAffected(issue.id)}
+          onClick={() =>
+            toggleAffected(
+              issue.id,
+              user?.uid,
+              user?.displayName || undefined,
+              user?.photoURL || undefined
+            )
+          }
           className={`w-full py-2.5 px-4 rounded-xl text-xs font-extrabold uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-md active:scale-98 ${
-            issue.hasUserMarkedAffected
+            isUserVoted
               ? "bg-gradient-to-r from-purple-600 via-pink-600 to-rose-600 text-white shadow-purple-500/30 ring-2 ring-purple-400/50"
               : "bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 hover:text-white hover:border-purple-500/50"
           }`}
         >
-          <Users className={`w-4 h-4 ${issue.hasUserMarkedAffected ? "animate-pulse" : "text-purple-400"}`} />
+          <span className="text-sm">👍</span>
           <span>
-            {issue.hasUserMarkedAffected
-              ? "✓ You & " + (issue.affectedCount - 1) + " Others Marked Affected"
-              : "I'M AFFECTED (+1 Escalate)"}
+            {isUserVoted
+              ? `✓ You Endorsed (+1 Impact)`
+              : `👍 I'M AFFECTED (+1 Escalate)`}
           </span>
         </button>
 

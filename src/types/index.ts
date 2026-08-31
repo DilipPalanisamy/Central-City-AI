@@ -144,6 +144,7 @@ export interface CivicIssue {
   affectedCount: number;
   affectedThreshold: number; // e.g. 150 citizens to trigger mayoral auto-escalation
   hasUserMarkedAffected?: boolean;
+  voterUids?: string[];
   
   commentsCount: number;
   comments: CivicComment[];

@@ -35,7 +35,12 @@ interface CivicStoreContextType {
   searchQuery: string;
   setSearchQuery: (query: string) => void;
   upvoteIssue: (issueId: string) => void;
-  toggleAffected: (issueId: string) => void;
+  toggleAffected: (
+    issueId: string,
+    userUid?: string,
+    userName?: string,
+    userAvatar?: string
+  ) => void;
   addComment: (issueId: string, content: string) => void;
   verifyIssue: (issueId: string, notes?: string) => void;
   dispatchDepartment: (issueId: string, deptId: DepartmentId, officerName: string) => void;
@@ -133,19 +138,46 @@ export function CivicStoreProvider({ children }: { children: React.ReactNode }) 
   };
 
   // Primary Community Interaction: "I'M AFFECTED"
-  const toggleAffected = (issueId: string) => {
+  const toggleAffected = (
+    issueId: string,
+    userUid?: string,
+    userName?: string,
+    userAvatar?: string
+  ) => {
+    const voterId = userUid || currentUser.id;
+    const voterName = userName || currentUser.name;
+    const voterPhoto = userAvatar || currentUser.avatarUrl;
+
+    let actionTaken: "voted" | "unvoted" = "voted";
+
     setIssues((prev) =>
       prev.map((iss) => {
         if (iss.id === issueId) {
-          const wasAffected = iss.hasUserMarkedAffected;
-          const newCount = wasAffected ? iss.affectedCount - 1 : iss.affectedCount + 1;
-          const isThresholdReached = newCount >= iss.affectedThreshold;
+          const currentVoterUids = iss.voterUids || [];
+          const hasVoted = currentVoterUids.includes(voterId) || (iss.hasUserMarkedAffected && currentVoterUids.length === 0);
+
+          let nextVoterUids: string[];
+          let nextCount: number;
+
+          if (hasVoted) {
+            actionTaken = "unvoted";
+            nextVoterUids = currentVoterUids.filter((id) => id !== voterId);
+            nextCount = Math.max(0, iss.affectedCount - 1);
+          } else {
+            actionTaken = "voted";
+            nextVoterUids = [...currentVoterUids, voterId];
+            nextCount = iss.affectedCount + 1;
+          }
+
+          const isThresholdReached = nextCount >= (iss.affectedThreshold || 5);
 
           return {
             ...iss,
-            hasUserMarkedAffected: !wasAffected,
-            affectedCount: newCount,
-            timeline: wasAffected
+            hasUserMarkedAffected: !hasVoted,
+            voterUids: nextVoterUids,
+            affectedCount: nextCount,
+            // CRITICAL: We do NOT modify iss.severityScore or iss.aiAnalysis.priorityScore or iss.severity!
+            timeline: hasVoted
               ? iss.timeline
               : [
                   ...iss.timeline,
@@ -153,12 +185,12 @@ export function CivicStoreProvider({ children }: { children: React.ReactNode }) 
                     id: `tl_aff_${Date.now()}`,
                     timestamp: new Date().toISOString(),
                     actor: {
-                      name: currentUser.name,
-                      role: currentUser.role,
-                      avatarUrl: currentUser.avatarUrl,
+                      name: voterName,
+                      role: "citizen",
+                      avatarUrl: voterPhoto,
                     },
-                    action: `Citizen Impact Flagged (#${newCount})`,
-                    description: `${currentUser.name} marked themselves as directly affected by this hazard.`,
+                    action: `Citizen Endorsement (#${nextCount})`,
+                    description: `${voterName} endorsed community impact for escalation.`,
                     badge: isThresholdReached ? "Escalation Quorum Met" : undefined,
                   },
                 ],
@@ -168,11 +200,19 @@ export function CivicStoreProvider({ children }: { children: React.ReactNode }) 
       })
     );
 
-    addToast(
-      "Impact Registered",
-      "Your 'I'M AFFECTED' signal has been added to the neighborhood escalation threshold.",
-      "success"
-    );
+    if (actionTaken === "voted") {
+      addToast(
+        "Impact Signal Registered",
+        "Your '👍 I'M AFFECTED' endorsement has been added to the neighborhood escalation count.",
+        "success"
+      );
+    } else {
+      addToast(
+        "Impact Signal Removed",
+        "Your endorsement has been removed from this issue.",
+        "info"
+      );
+    }
   };
 
   const addComment = (issueId: string, content: string) => {

@@ -267,6 +267,8 @@ export default function ReportPage() {
                 lng: reportData.longitude,
                 landmark: reportData.landmark,
               }}
+              category={reportData.issueType}
+              imageUrl={reportData.imagePreview || undefined}
               onLocationChange={handleLocationUpdated}
               onContinue={() => goToStep(4)}
               onBack={() => goToStep(2)}
