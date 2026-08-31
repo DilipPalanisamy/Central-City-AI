@@ -230,14 +230,28 @@ export default function IssueDetailsPage() {
               </div>
             </div>
 
-            {/* 3. Description & Citizen Observations */}
-            <div className="p-6 rounded-3xl bg-slate-950/90 border border-slate-800 shadow-glass space-y-3">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-white">
-                Detailed Problem Description
-              </h3>
-              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed bg-slate-900/50 p-4 rounded-2xl border border-slate-800/80">
-                {issue.description}
-              </p>
+            {/* 3. Description & Requested Action */}
+            <div className="p-6 rounded-3xl bg-slate-950/90 border border-slate-800 shadow-glass space-y-4">
+              <div className="space-y-2">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-white">
+                  Detailed Problem Description
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed bg-slate-900/50 p-4 rounded-2xl border border-slate-800/80">
+                  {issue.description}
+                </p>
+              </div>
+
+              {issue.actionRequired && (
+                <div className="space-y-2 pt-2 border-t border-slate-800/80">
+                  <div className="flex items-center space-x-2 text-xs font-bold uppercase tracking-wider text-cyan-300">
+                    <Wrench className="w-3.5 h-3.5 text-cyan-400" />
+                    <span>Requested Municipal Action</span>
+                  </div>
+                  <p className="text-xs sm:text-sm text-cyan-100 leading-relaxed bg-cyan-950/20 p-4 rounded-2xl border border-cyan-500/30">
+                    {issue.actionRequired}
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* 4. Supporting Evidence Gallery */}

@@ -326,6 +326,7 @@ export default function ReportPage() {
               category={reportData.issueType}
               location={reportData.location}
               priority={reportData.priority}
+              issueId={submittedIssueId}
               onViewCommunity={() => router.push(`/community/${submittedIssueId}`)}
               onBackDashboard={() => router.push("/dashboard")}
             />

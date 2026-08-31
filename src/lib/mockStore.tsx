@@ -360,7 +360,7 @@ export function CivicStoreProvider({ children }: { children: React.ReactNode }) 
         ward: "Ward 14",
         zone: "Tiruppur District",
       },
-      reportedBy: {
+      reportedBy: newIssueData.reportedBy || {
         id: currentUser.id,
         name: currentUser.name,
         avatarUrl: currentUser.avatarUrl,
@@ -401,9 +401,9 @@ export function CivicStoreProvider({ children }: { children: React.ReactNode }) 
           id: `tl_${Date.now()}_1`,
           timestamp: new Date().toISOString(),
           actor: {
-            name: currentUser.name,
-            role: currentUser.role,
-            avatarUrl: currentUser.avatarUrl,
+            name: newIssueData.reportedBy?.name || currentUser.name,
+            role: "citizen",
+            avatarUrl: newIssueData.reportedBy?.avatarUrl || currentUser.avatarUrl,
           },
           action: "Citizen Report Submitted",
           description: `Geo-tagged evidence photo and location registered at ${newIssueData.location?.address || "Avinashipalayam"}.`,

@@ -21,6 +21,7 @@ export interface Step7SuccessProps {
   category: string;
   location: string;
   priority: string;
+  issueId?: string;
   onViewCommunity?: () => void;
   onBackDashboard?: () => void;
 }
@@ -30,9 +31,12 @@ export function Step7Success({
   category = "Road Damage",
   location = "Avinashipalayam",
   priority = "HIGH",
+  issueId = "iss_8942",
   onViewCommunity,
   onBackDashboard,
 }: Step7SuccessProps) {
+  const communityLink = issueId ? `/community/${issueId}` : "/community";
+
   return (
     <div className="max-w-2xl mx-auto space-y-8 animate-in zoom-in-95 duration-300 text-center">
       {/* Top Radiant Success Icon: ✓ */}
@@ -43,13 +47,13 @@ export function Step7Success({
         </div>
       </div>
 
-      {/* Exact Heading & Message */}
+      {/* Heading & Message */}
       <div className="space-y-2 max-w-lg mx-auto">
         <h2 className="text-2xl sm:text-4xl font-black text-white tracking-tight">
           Report Submitted Successfully
         </h2>
         <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-          Your evidence has been recorded and the issue is now being prepared for community verification.
+          Your evidence photo and triage data have been recorded. The issue is now active on the public ledger for community verification.
         </p>
       </div>
 
@@ -68,7 +72,7 @@ export function Step7Success({
           {/* Report ID */}
           <div className="p-3 rounded-2xl bg-slate-900/80 border border-slate-800">
             <span className="text-[10px] uppercase font-bold text-slate-400 block font-mono">
-              Report ID:
+              Tracking Number:
             </span>
             <span className="text-sm font-black text-cyan-400 font-mono">
               {trackingNumber || "CCA-2026-00124"}
@@ -78,7 +82,7 @@ export function Step7Success({
           {/* Priority */}
           <div className="p-3 rounded-2xl bg-slate-900/80 border border-slate-800">
             <span className="text-[10px] uppercase font-bold text-slate-400 block font-mono">
-              Priority:
+              Assigned Priority:
             </span>
             <span className="text-sm font-black text-amber-400 font-mono">
               {priority || "HIGH"}
@@ -91,14 +95,14 @@ export function Step7Success({
               Location:
             </span>
             <span className="text-xs font-bold text-white truncate block">
-              {location || "Avinashipalayam"}
+              {location || "Avinashipalayam, Tamil Nadu"}
             </span>
           </div>
 
           {/* Status */}
           <div className="p-3 rounded-2xl bg-slate-900/80 border border-slate-800">
             <span className="text-[10px] uppercase font-bold text-slate-400 block font-mono">
-              Status:
+              Lifecycle Status:
             </span>
             <span className="text-xs font-bold text-purple-400 uppercase tracking-wide">
               COMMUNITY VERIFICATION
@@ -110,15 +114,14 @@ export function Step7Success({
         <div className="p-3.5 rounded-2xl bg-purple-950/30 border border-purple-500/20 flex items-center gap-2.5 text-xs text-purple-200">
           <Users className="w-4 h-4 text-purple-400 shrink-0" />
           <span>
-            Nearby neighbors will now be alerted to confirm collective impact via <strong>&ldquo;I&apos;m Affected&rdquo;</strong> signatures.
+            Nearby citizens can now endorse this report via <strong>&ldquo;I&apos;m Affected&rdquo;</strong> to expedite municipal dispatch.
           </span>
         </div>
       </div>
 
-      {/* 2 Primary Action Buttons: [ VIEW COMMUNITY ISSUE ] and [ BACK TO DASHBOARD ] */}
+      {/* Action Buttons */}
       <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
-        {/* [ VIEW COMMUNITY ISSUE ] */}
-        <Link href="/community/iss_8942" className="w-full sm:w-auto">
+        <Link href={communityLink} className="w-full sm:w-auto">
           <Button
             type="button"
             variant="glow"
@@ -127,11 +130,10 @@ export function Step7Success({
             className="w-full sm:w-auto text-xs font-black uppercase tracking-wider px-8 py-3 bg-gradient-to-r from-purple-600 to-cyan-500 shadow-purple-glow"
             rightIcon={<ExternalLink className="w-4 h-4" />}
           >
-            VIEW COMMUNITY ISSUE
+            VIEW COMMUNITY ISSUE →
           </Button>
         </Link>
 
-        {/* [ BACK TO DASHBOARD ] */}
         <Link href="/citizen" className="w-full sm:w-auto">
           <Button
             type="button"

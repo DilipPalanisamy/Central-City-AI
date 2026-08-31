@@ -24,6 +24,7 @@ import {
   Wrench,
   Share2,
   CheckCircle2,
+  UserCheck,
 } from "lucide-react";
 
 export interface CommunityIssueCardProps {
@@ -53,6 +54,11 @@ export function CommunityIssueCard({ issue }: CommunityIssueCardProps) {
     }
   };
 
+  const authorName = issue.reportedBy?.name || "Verified Citizen";
+  const authorAvatar =
+    issue.reportedBy?.avatarUrl ||
+    `https://ui-avatars.com/api/?name=${encodeURIComponent(authorName)}&background=06b6d4&color=020617&bold=true`;
+
   return (
     <Card
       variant="glass"
@@ -60,9 +66,45 @@ export function CommunityIssueCard({ issue }: CommunityIssueCardProps) {
     >
       <div>
         {/* ================================================== */}
-        {/* 1. ACTUAL EVIDENCE IMAGE PREVIEW */}
+        {/* 1. TOP REPORTER HEADER (GOOGLE AUTH AUTHOR STRIP)  */}
         {/* ================================================== */}
-        <div className="relative h-52 sm:h-56 w-full overflow-hidden bg-slate-900 border-b border-slate-800">
+        <div className="p-3.5 px-4 bg-slate-950 border-b border-slate-850 flex items-center justify-between">
+          <div className="flex items-center space-x-2.5 min-w-0">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={authorAvatar}
+              alt={authorName}
+              className="w-8 h-8 rounded-full border border-cyan-500/40 object-cover shrink-0 shadow-sm"
+              onError={(e) => {
+                // Fallback avatar if Google image fails to load
+                (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(authorName)}&background=06b6d4&color=020617&bold=true`;
+              }}
+            />
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-bold text-white truncate block">
+                  {authorName}
+                </span>
+                <span className="inline-flex items-center text-[10px] text-cyan-400 font-mono">
+                  <ShieldCheck className="w-3 h-3 text-cyan-400" />
+                </span>
+              </div>
+              <span className="text-[10px] text-slate-400 font-mono block">
+                {issue.reportedBy?.isAnonymous ? "Anonymous Reporter" : "Google Verified Citizen"}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1 text-[11px] text-slate-400 font-mono shrink-0">
+            <Clock className="w-3 h-3 text-slate-500" />
+            <span>{formatRelativeTime(issue.reportedAt)}</span>
+          </div>
+        </div>
+
+        {/* ================================================== */}
+        {/* 2. ACTUAL PERSISTENT EVIDENCE IMAGE               */}
+        {/* ================================================== */}
+        <div className="relative h-52 sm:h-60 w-full overflow-hidden bg-slate-900 border-b border-slate-800">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={issue.media.primaryImageUrl}
@@ -70,7 +112,7 @@ export function CommunityIssueCard({ issue }: CommunityIssueCardProps) {
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           />
 
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent pointer-events-none" />
 
           {/* Top Badges: Category + Priority Pill */}
           <div className="absolute top-3 left-3 right-3 flex items-center justify-between gap-2">
@@ -83,35 +125,28 @@ export function CommunityIssueCard({ issue }: CommunityIssueCardProps) {
             <SeverityPill severity={issue.severity} size="sm" />
           </div>
 
-          {/* Bottom Overlay: Tracking ID & Relative Time */}
+          {/* Bottom Overlay: Tracking ID */}
           <div className="absolute bottom-2.5 left-3 right-3 flex items-center justify-between text-xs text-slate-300">
             <span className="font-mono text-cyan-300 font-bold bg-slate-950/85 px-2 py-0.5 rounded border border-cyan-500/30">
               {issue.trackingNumber}
             </span>
 
-            <span className="flex items-center gap-1 bg-slate-950/85 px-2 py-0.5 rounded border border-slate-800 text-[11px]">
-              <Clock className="w-3 h-3 text-slate-400" />
-              <span>Reported {formatRelativeTime(issue.reportedAt)}</span>
+            <span
+              className={`px-2 py-0.5 rounded text-[11px] font-bold border backdrop-blur-md ${statusMeta.bgClass} ${statusMeta.colorClass}`}
+            >
+              {statusMeta.label}
             </span>
           </div>
         </div>
 
         {/* ================================================== */}
-        {/* 2. CARD CONTENT & METRICS */}
+        {/* 3. CARD CONTENT & DETAILS                         */}
         {/* ================================================== */}
         <div className="p-5 space-y-4">
-          {/* Location & Status Line */}
-          <div className="flex items-center justify-between text-xs">
-            <span
-              className={`px-2.5 py-0.5 rounded-md font-bold border ${statusMeta.bgClass} ${statusMeta.colorClass}`}
-            >
-              {statusMeta.label}
-            </span>
-
-            <span className="text-slate-300 font-medium flex items-center gap-1 truncate max-w-[220px]">
-              <MapPin className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-              <span className="truncate">{issue.location.address || `${issue.location.ward}, ${issue.location.zone}`}</span>
-            </span>
+          {/* Location Line */}
+          <div className="flex items-center text-xs text-slate-300 font-medium truncate">
+            <MapPin className="w-4 h-4 text-cyan-400 shrink-0 mr-1.5" />
+            <span className="truncate">{issue.location.address || `${issue.location.ward}, ${issue.location.zone}`}</span>
           </div>
 
           {/* Title & Description */}
@@ -127,15 +162,15 @@ export function CommunityIssueCard({ issue }: CommunityIssueCardProps) {
             </p>
           </div>
 
-          {/* Required Action Strip */}
+          {/* Requested Action Strip */}
           {issue.actionRequired && (
-            <div className="p-2.5 rounded-xl bg-slate-900/70 border border-slate-800 text-xs flex items-start gap-2">
+            <div className="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800 text-xs flex items-start gap-2">
               <Wrench className="w-3.5 h-3.5 text-cyan-400 shrink-0 mt-0.5" />
               <div className="min-w-0">
                 <span className="text-[10px] uppercase font-bold text-slate-500 block font-mono">
                   Requested Action:
                 </span>
-                <span className="text-slate-200 line-clamp-1">
+                <span className="text-slate-200 line-clamp-2">
                   {issue.actionRequired}
                 </span>
               </div>
@@ -146,7 +181,7 @@ export function CommunityIssueCard({ issue }: CommunityIssueCardProps) {
           <div className="p-3 rounded-2xl bg-slate-950/90 border border-slate-800 flex items-center justify-between text-xs font-mono">
             <div className="flex items-center gap-1.5 text-emerald-400 font-bold">
               <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-              <span>Damage: YES</span>
+              <span>AI Triage: Verified</span>
             </div>
 
             <div className="flex items-center gap-1.5 text-cyan-300">
@@ -167,7 +202,7 @@ export function CommunityIssueCard({ issue }: CommunityIssueCardProps) {
                 <span>{issue.affectedCount} Citizens Affected</span>
               </span>
               <span className="text-[11px] font-mono text-purple-300">
-                {isThresholdMet ? "⚡ Escalation Reached!" : `${issue.affectedCount}/${issue.affectedThreshold || 5} to Auto-Escalate`}
+                {isThresholdMet ? "⚡ Escalation Threshold Met!" : `${issue.affectedCount}/${issue.affectedThreshold || 5} to Escalate`}
               </span>
             </div>
 
@@ -182,7 +217,7 @@ export function CommunityIssueCard({ issue }: CommunityIssueCardProps) {
       </div>
 
       {/* ================================================== */}
-      {/* 3. CARD FOOTER: PRIMARY "I'M AFFECTED" & ACTIONS */}
+      {/* 4. CARD FOOTER: "I'M AFFECTED" & SHARE ACTIONS     */}
       {/* ================================================== */}
       <div className="p-5 pt-0 border-t border-slate-800/80 mt-2 space-y-3">
         {/* Primary "I'M AFFECTED" Button */}
@@ -228,7 +263,7 @@ export function CommunityIssueCard({ issue }: CommunityIssueCardProps) {
             href={`/community/${issue.id}`}
             className="text-xs font-bold text-cyan-400 hover:text-cyan-300 flex items-center gap-1"
           >
-            <span>Full Details</span>
+            <span>Full Case File</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </Link>
         </div>
